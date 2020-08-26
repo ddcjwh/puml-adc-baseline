@@ -1,0 +1,58 @@
+@startuml PAPEREX_MENU_AND_DEFAULTS
+!include http://utilities.junotsystems.com:5120/plantuml/jwh-salt-chart-legend.iuml
+
+title Logon, Menu and User Defaults\nusing SAP Authentication\nBASELINE
+
+!function _logon()
+{
+    = Logon Screen
+    ---
+    "$editable SAP User ID"
+    "$editable SAP Password"
+    ...
+    [ LOGON ]
+    ===
+    <i>Notes
+}
+!endfunction
+
+!function _logonValid()
+{
+    = Read User Defaults from SAP
+    ===
+    <i>Notes
+    Check any required SAP user profile parameters (e.g., WRK = Plant)
+}
+!endfunction
+
+!function _userDefaultsMissing()
+{
+    = Missing User Defaults
+    ---
+    $sysnote Display required parameters with current values
+    ...
+    [ LOGOFF ]
+    ===
+    <i>Notes
+    User must set defaults in SAP and logon again
+}
+!endfunction
+
+!function _menu()
+{
+    = Menu
+    ---
+    [$sysnote menu buttons go here]
+    ===
+    <i>Notes 
+    Assign Menu based on User Group(s) defined in SAP User Profile
+}
+!endfunction
+
+(*) --> [$userentry ADC URL in Browser] SALT(logon)
+logon --> [$button LOGON\n(If logon is successful)] SALT(logonValid)
+logonValid -$sysevt-> [$sysentry User missing default values] SALT(userDefaultsMissing)
+logonValid -$sysevt-> [$sysentry User defaults found in SAP] SALT(menu)
+
+
+@enduml

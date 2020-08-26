@@ -1,0 +1,165 @@
+@startuml MB1B-311_BASELINE
+!include http://utilities.junotsystems.com:5120/plantuml/jwh-salt-chart-legend.iuml
+
+title MB1B-311 Transfer Posting Storage Location-to-Storage Location\nBASELINE
+
+!function _initial()
+{
+  = Initial Screen
+  ---
+  {
+      [ MENU ]|[ CLEAR ]|[ POST ]
+  }
+  ...
+  "$editable Material"
+  "$disabled Quantity"
+  ^$disabled Plant^
+  ^$disabled Source Storage Location^
+  ^$disabled Destination Storage Location^
+}
+!endfunction
+
+!function _materialValid()
+{
+  = Material Found in SAP
+  ---
+  {
+      [ MENU ]|[ CLEAR ]|[ POST ]
+  }
+  ...
+  "$editable Material"
+   Description
+   Base Unit of Measure
+  "$editable Quantity"
+  ^$editable Plant^
+  ^$disabled Source Storage Location^
+  ^$disabled Destination Storage Location^
+}
+!endfunction
+
+!function _plantDefault()
+{
+  = Plant Set by System
+  ---
+  {
+      [ MENU ]|[ CLEAR ]|[ POST ]
+  }
+  ...
+  "$disabled Material"
+   Description
+   Base Unit of Measure
+  "$editable Quantity"
+  ^$disabled Plant^
+  ^$editable Source Storage Location^
+  ^$editable Destination Storage Location^
+}
+!endfunction
+
+!function _plantValid()
+{
+  = Plant Selected
+  ---
+  {
+      [ MENU ]|[ CLEAR ]|[ POST ]
+  }
+  ...
+  "$disabled Material"
+   Description
+   Base Unit of Measure
+  "$editable Quantity"
+  ^$editable Plant^
+  ^$editable Source Storage Location^
+  ^$editable Destination Storage Location^
+}
+!endfunction
+
+!function _sourceSlocDefault()
+{
+  = Source SLoc Set by System
+  ---
+  {
+      [ MENU ]|[ CLEAR ]|[ POST ]
+  }
+  ...
+  "$disabled Material"
+   Description
+   Base Unit of Measure
+  "$editable Quantity"
+  {
+  ^$editable Plant^|or|^$disabled Plant^
+  }
+  ^$disabled Source Storage Location^
+   Current Quantity in Source
+  "$editable Destination Storage Location"
+}
+!endfunction
+
+!function _sourceSlocValid()
+{
+  = Source SLoc Selected
+  ---
+  {
+      [ MENU ]|[ CLEAR ]|[ POST ]
+  }
+  ...
+  "$disabled Material"
+  Description
+  Base Unit of Measure
+  "$editable Quantity"
+  {
+  ^$editable Plant^|or|^$disabled Plant^
+  }
+  ^$editable Source Storage Location^
+  Current Quantity in Source
+  ^$editable Destination Storage Location^
+}
+!endfunction
+
+!function _destSlocValid()
+{
+  = Destination SLoc Selected
+  ---
+  {
+      [ MENU ]|[ CLEAR ]|[ POST ]
+  }
+  ...
+  "$disabled Material"
+  Description
+  Base Unit of Measure
+  "$editable Quantity"
+  {
+  ^$editable Plant^|or|^$disabled Plant^
+  }
+  ^$editable Source Storage Location^
+  Current Quantity in Source
+  ^$editable Destination Storage Location^
+  Current Quantity in Destination
+}
+!endfunction
+
+!function _posted()
+{
+  = Post Sent to SAP
+  ===
+  Current posting data
+}
+!endfunction
+
+(*) --> [Menu Selection] SALT(initial)
+initial --> [$userentry Material Entry] "Gathering Data" as Gathering<<ScreenGroup>>
+Gathering --> [$button POST\n(If All Required Entries Completed)] SALT(posted)
+posted -$sysevt-> [$sysentry Failed Post to SAP] Gathering
+posted -$sysevt-> [$sysentry Successful Post to SAP] initial
+
+partition "Gathering Data" {
+    Gathering --> SALT(materialValid)
+    materialValid --> [$userentry Plant Entry] SALT(plantValid)
+    plantValid --> [$userentry Source Storage Location Entry] SALT(sourceSlocValid)
+    sourceSlocValid --> [$userentry Destination Storage Location Entry] SALT(destSlocValid)
+    materialValid -$sysevt-> [$sysentry Material Found in Single Plant] SALT(plantDefault)
+    plantDefault --> sourceSlocValid
+    plantValid -$sysevt-> SALT(sourceSlocDefault)
+    plantDefault -$sysevt-> [$sysentry Material Found in Single Storage Location] sourceSlocDefault
+}
+
+@enduml

@@ -1,0 +1,46 @@
+@startuml MMBE_BASELINE
+!include http://utilities.junotsystems.com:5120/plantuml/jwh-salt-chart-legend.iuml
+title MMBE Stock Overview\nBASELINE
+
+!procedure _initial()
+{
+  = Initial Screen
+  ---
+  {
+      [ MENU ]|[ CLEAR ]|[ SEARCH ]
+  }
+  ...
+  "$editable Material"
+  ^$disabled Plant^
+  ^$disabled Storage Location^
+}
+!endprocedure
+
+!procedure _gathering()
+{
+    = Material Found in SAP
+    ---
+    {
+        [ MENU ]|[ CLEAR ]|[ REFRESH ]
+    }
+    ...
+    "$disabled Material"
+    Description
+    ^$editable Plant^
+    ^$editable Storage Location^
+    {S
+    {#
+        List of Current Quantities|*|*|*|*
+        Plant|Storage Location|Unrestricted Stock Qty|QA Stock Qty|Block Stock Qty
+    }
+    }
+}
+!endprocedure
+
+
+(*) --> [$button Menu Selection] SALT(initial)
+initial --> [$button SEARCH] SALT(gathering)
+gathering --> [$button CLEAR] initial
+gathering --> [$button REFRESH\nUpdate Listing Based on Current Selections] gathering
+
+@enduml

@@ -1,0 +1,147 @@
+@startuml MB1B-301-BASELINE-V38-19
+!include http://utilities.junotsystems.com:5120/plantuml/jwh-salt-chart-legend.iuml
+
+title MB1B-301 Transfer Posting\nPlant-to-Plant\nBASELINE v38
+
+!procedure _initial()
+{
+    = Initial Screen
+    ---
+    {
+       [ MENU ]|[ RESET ]|[ POST ]
+    }
+    [$conditional STATUS MESSAGE]
+    ...
+    "$editable Material"
+    ===
+    <i>Notes
+}
+!endprocedure
+
+!procedure _docNumValid()
+{
+    = Material(s) Found in SAP
+    ---
+    {
+        [ MENU ]|[ RESET ]|[ POST ]
+    }
+    [$conditional STATUS MESSAGE]
+    ...
+    $sysnote Header Fields
+    "$editable Header Text"
+    ...
+    $sysnote Selection Fields
+    "$editable Material"
+    ^$editable Line^
+    {S
+        {#
+            List of All Entries|*|*
+            with|same|details
+        }
+    }
+    ===
+    <i>Notes
+}
+!endprocedure
+
+!procedure _docLineDetail()
+{
+    = Material Selected for Transfer
+    ---
+    {
+        [ MENU ]|[ RESET ]|[ POST ]
+    }
+    [$conditional STATUS MESSAGE]
+    ...
+    {S-
+        {#
+            List of Entries for Selected Material|*|*|*|*|*|*|*|*
+            Material|Qty to Transfer|UoM|Source Plant|Stor Loc|Batch|Dest Plant|Stor Loc|Batch
+        }
+    }
+    $sysnote Current entry will be highlighted
+    Material Description
+    ...
+    "$disabled Material"
+    "$editable Quantity to Transfer"
+    ...
+    $sysnote Material Source Fields
+    ^$editable Issuing Plant^
+    ^$editable Issuing Storage Location^
+    ^$editable $conditional Issuing Batch^
+    Available Quantity
+    ...
+    $sysnote Material Destination Fields
+    ^$editable Receiving Plant^
+    ^$editable Receiving Storage Location^
+    "$editable $conditional New Receiving Storage Location"
+    ^$editable $conditional Receiving Batch^
+    "$editable $conditional New Receiving Batch"
+    Current Quantity
+    ...
+    $sysnote Serial Number Fields
+    {S
+        {#
+            $conditional List of Selected/Entered Serial Numbers
+            Serial Number
+        }
+    }
+    ^$editable $conditional Serial Number^
+    "$editable $conditional New Serial Number"
+    ...
+    {
+        [ ADD ]|[ LIST ]|[ BACK ]|[ CLEAR ]|[ NEXT ]|[ SAVE ]
+    }
+    ===
+    <i>Notes
+    Default Transfer Quantity = 0
+    Only show Batch fields if Material is batch-managed
+    Quantities shown at lowest level (e.g., Storage Location or Batch level)
+    Only show Serial Number fields if Material has serial number profile
+    . and saved transfer quantity > 0
+    Multiple entries for the same
+    . material with different values can be added (e.g., batch split)
+}
+!endprocedure
+
+!procedure _saving()
+{
+    = Updating Receipts
+    ===
+    <i>Notes
+    Unposted transfer details gathered so far stored in internal workset
+    Multiple entries may be gathered for posting to a single GM Document
+}
+!endprocedure
+
+!procedure _posted()
+{
+    = Post Sent to SAP
+    ===
+    <i>Notes 
+    Only send entries with unposted transfer quantites > 0
+}
+!endprocedure
+
+(*) --> [$button Menu Selection] SALT(initial)
+initial --> [$userentry Material Number Entry\n(If Material found in SAP)] "Gathering Data" as Gathering<<ScreenGroup>>
+Gathering --> [$button POST] SALT(posted)
+posted -$sysevt-> [$sysentry Failed Post to SAP] Gathering
+Gathering --> [$button RESET\n(If all entries have qty = 0)\nDiscard all entries\nClear header fields] initial
+posted -$sysevt-> [$sysentry Successful Post to SAP\nShow Document Number in status message] initial
+
+partition "Gathering Data" {
+    Gathering -[dotted]-> SALT(docLineDetail)
+    docLineDetail --> [$button LIST] SALT(docNumValid)
+    docLineDetail --> [$button BACK or NEXT\nMove to previous or next entry] docLineDetail
+    docNumValid --> [$userentry Material Entry\n(If material is valid) or\n$userentry Item Selection] docLineDetail
+    docNumValid --> [$button RESET\n(If any entries have qty > 0)\nReset values on all entries] docNumValid
+    docLineDetail --> [$userentry Serial Number Entry\nAdd new entry to list of serial numbers\nor remove duplicate entry from list] docLineDetail
+    docLineDetail --> [$button ADD\n(If current entry is complete\nand source and destination values\ndiffer from existing entries)] SALT(saving)
+    docLineDetail --> [$button SAVE\n(If current entry is complete\nand source and destination values\ndo not conflict with existing entries)] saving
+    docLineDetail --> [$button CLEAR\nFor current entry only\nIf quantity > 0, reset all values\nIf quantity = 0, remove entry from screen] saving
+    saving -$sysevt-> [$sysentry Stay on same item\n(If entries exist)] docLineDetail
+    saving -$sysevt-> [$sysentry Return to listing\n(If no entries remain for current item)] docNumValid
+}
+
+@enduml

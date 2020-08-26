@@ -1,0 +1,139 @@
+@startuml MB1A-261-PRODORD-BASELINE-V38
+!include http://utilities.junotsystems.com:5120/plantuml/jwh-salt-chart-legend.iuml
+
+title MB1A-261 Goods Issue to Production Order\nBASELINE v38
+
+!function _initial()
+{
+    = Initial Screen
+    ---
+    {
+        [ MENU ]|[ RESET ]|[ POST ]
+    }
+    [$conditional STATUS MESSAGE]
+    ...
+    "$editable Production Order Number"
+    ===
+    <i>Notes
+}
+!endfunction
+
+!function _docNumValid()
+{
+    = Production Order Found in SAP
+    ---
+    {
+        [ MENU ]|[ RESET ]|[ POST ]
+    }
+    [$conditional STATUS MESSAGE]
+    ...
+    $sysnote Header Fields
+    "$editable Header Text"
+    "$editable Goods Recipient"
+    ...
+    $sysnote Selection Fields
+    "$editable Material"
+    ^$editable Item^
+    {S
+        {#
+            List of All Entries|*|*|*|*|*
+            Material|Qty to Issue|UoM|Plant|Stor Loc|Batch
+        }
+    }
+    ===
+    <i>Notes
+    Entry list may be empty (if no materials have been added yet
+    . or if all previous entries have been cleared)
+}
+!endfunction
+
+!function _docLineDetail()
+{
+    = Material Selected for Issue
+    ---
+    {
+        [ MENU ]|[ RESET ]|[ POST ]
+    }
+    [$conditional STATUS MESSAGE]
+    ...
+    {S-
+        {#
+            List of Entries for Selected Material|*|*
+            with|same|details
+        }
+    }
+    $sysnote Current entry will be highlighted
+    Material Description
+    ...
+    "$editable Quantity to Issue"
+    ...
+    $sysnote Material Source Fields
+    ^$editable Plant^
+    ^$editable Storage Location^
+    ^$editable $conditional Batch^
+    Available Quantity
+    ...
+    $sysnote Serial Number Fields
+    {S
+        {#
+            $conditional List of Entered Serial Numbers
+            Serial Number
+        }
+    }
+    ^$editable $conditional Serial Number^
+    ...
+    {
+        [ ADD ]|[ LIST ]|[ BACK ]|[ CLEAR ]|[ NEXT ]|[ SAVE ]
+    }
+    ===
+    <i>Notes
+    Default Issue Quantity = 0
+    Only show Batch field if Material is batch-managed
+    Available Quantity shown at lowest level (e.g., at SLoc or at Batch level)
+    Only show Serial Number fields if Material has serial number profile
+    . and saved issue quantity > 0
+    Multiple entries for the same material with different sources can be added (e.g., batch split)
+}
+!endfunction
+
+!function _saving()
+{
+    = Updating Issues
+    ===
+    <i>Notes
+    Unposted issue details gathered so far stored in internal workset
+    Multiple entries may be gathered for posting to a single GI Document
+}
+!endfunction
+
+!function _posted()
+{
+    = Post Sent to SAP
+    ===
+    <i>Notes
+    Only send entries with unposted issue quantites > 0
+}
+!endfunction
+
+(*) --> [$button Menu Selection] SALT(initial)
+initial --> [$userentry Production Order Entry\n(If found in SAP)] "Gathering Data" as Gathering<<ScreenGroup>>
+Gathering --> [$button POST] SALT(posted)
+posted -$sysevt-> [$sysentry Failed Post to SAP] Gathering
+Gathering --> [$button RESET\n(If all entries have qty = 0)\nDiscard all entries\nClear header fields] initial
+posted -$sysevt-> [$sysentry Successful Post to SAP\nShow Document Number in status message] initial
+
+partition "Gathering Data" {
+    Gathering -[dotted]-> SALT(docNumValid)
+    docNumValid --> [$userentry Material Entry\n(if Material is valid) or\n$userentry Item Selection] SALT(docLineDetail)
+    docLineDetail --> [$button LIST] docNumValid
+    docLineDetail --> [$button BACK or NEXT\nMove to previous or next entry] docLineDetail
+    docNumValid --> [$button RESET\n(If any entries have qty > 0)\nReset qty and source fields for all entries] docNumValid
+    docLineDetail --> [$userentry Serial Number Entry\nAdd new entry to list of serial numbers\nor remove duplicate entry from list] docLineDetail
+    docLineDetail --> [$button ADD\n(If current entry is complete\nand source values differ from existing entries)] SALT(saving)
+    docLineDetail --> [$button SAVE\n(If current entry is complete\nand source values do not conflict with existing entries)] saving
+    docLineDetail --> [$button CLEAR\nFor current entry only\nIf quantity > 0, reset all values\nIf quantity = 0, remove entry from screen] saving
+    saving -$sysevt-> [$sysentry Stay on same item\n(If entries exist)] docLineDetail
+    saving -$sysevt-> [$sysentry Return to listing\n(If no entries remain for current item)] docNumValid
+}
+
+@enduml

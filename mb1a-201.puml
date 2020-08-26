@@ -1,0 +1,161 @@
+@startuml MB1A-201_BASELINE
+!include http://utilities.junotsystems.com:5120/plantuml/jwh-salt-chart-legend.iuml
+
+title MB1A-201 Goods Issue to Cost Center\nBASELINE
+
+!function _initial()
+{
+    = Initial Screen
+    ---
+    {
+        [ MENU ]|[ CLEAR ]|[ POST ]
+    }
+    ...
+    "$editable Material"
+    ^$disabled Plant^
+    ^$disabled Storage Location^
+    "$disabled Quantity to Issue"
+    "$disabled Cost Center"
+    "$disabled Goods Recipient"
+    ===
+    <i>Notes
+}
+!endfunction
+
+!function _materialValid()
+{
+    = Material Found in SAP
+    ---
+    {
+        [ MENU ]|[ CLEAR ]|[ POST ]
+    }
+    ...
+    "$editable Material"
+    Description
+    Unit of Measure
+    ^$editable Plant^
+    ^$disabled Storage Location^
+    "$disabled Quantity to Issue"
+    "$disabled Cost Center"
+    "$disabled Goods Recipient"
+    ===
+    <i>Notes
+}
+!endfunction
+
+!function _plantValid()
+{
+    = Plant Selected
+    ---
+    {
+        [ MENU ]|[ CLEAR ]|[ POST ]
+    }
+    ...
+    "$editable Material"
+    Description
+    Unit of Measure
+    ^$editable Plant^
+    ^$editable Storage Location^
+    "$disabled Quantity to Issue"
+    "$disabled Cost Center"
+    "$disabled Goods Recipient"
+    ===
+    <i>Notes
+}
+!endfunction
+
+!function _plantDefault()
+{
+    = Plant Set by System
+    ---
+    {
+        [ MENU ]|[ CLEAR ]|[ POST ]
+    }
+    ...
+    "$editable Material"
+    Description
+    Unit of Measure
+    ^$disabled Plant^
+    ^$editable Storage Location^
+    "$disabled Quantity to Issue"
+    "$disabled Cost Center"
+    "$disabled Goods Recipient"
+    ===
+    <i>Notes
+}
+!endfunction
+
+!function _sourceSlocValid()
+{
+    = Storage Location Selected
+    ---
+    {
+        [ MENU ]|[ CLEAR ]|[ POST ]
+    }
+    ...
+    "$editable Material"
+    Description
+    Unit of Measure
+    {
+        ^$editable Plant^|or|^$disabled Plant^
+    }
+    ^$editable Storage Location^
+    Current Stock Available
+    "$editable Quantity to Issue"
+    "$editable Cost Center"
+    "$editable Goods Recipient"
+    ===
+    <i>Notes
+}
+!endfunction
+
+!function _sourceSlocDefault()
+{
+    = Storage Location Set by System
+    ---
+    {
+        [ MENU ]|[ CLEAR ]|[ POST ]
+    }
+    ...
+    "$editable Material"
+    Description
+    Unit of Measure
+    {
+        ^$editable Plant^|or|^$disabled Plant^
+    }
+    ^$disabled Storage Location^
+    Current Stock Available
+    "$editable Quantity to Issue"
+    "$editable Cost Center"
+    "$editable Goods Recipient"
+    ===
+    <i>Notes
+}
+!endfunction
+
+!function _posted()
+{
+    = Post Sent to SAP
+    ===
+    <i>Notes 
+}
+!endfunction
+
+(*) --> [$button Menu Selection] SALT(initial)
+initial --> [$userentry Material Entry\n(If Material found in SAP)] "Gathering Data" as Gathering<<ScreenGroup>>
+Gathering --> [$button POST\n(If All Required Entries Completed)] SALT(posted)
+posted -$sysevt-> [$sysentry Failed Post to SAP] Gathering
+posted -$sysevt-> [$sysentry Successful Post to SAP] initial
+Gathering --> [$button CLEAR] initial
+
+partition "Gathering Data" {
+    Gathering -[dotted]-> SALT(materialValid)
+    materialValid --> [$userentry Plant Entry] SALT(plantValid)
+    plantValid --> [$userentry Source Storage Location Entry] SALT(sourceSlocValid)
+    materialValid -$sysevt-> [$sysentry Material found in single Plant] SALT(plantDefault)
+    plantDefault --> sourceSlocValid
+    plantValid -$sysevt-> SALT(sourceSlocDefault)
+    plantDefault -$sysevt-> [$sysentry Material found in single Storage Location] sourceSlocDefault
+}
+
+@enduml

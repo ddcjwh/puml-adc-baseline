@@ -1,0 +1,230 @@
+@startuml MB1B-309_BASELINE
+!include http://utilities.junotsystems.com:5120/plantuml/jwh-salt-chart-legend.iuml
+
+title MB1B-309 Transfer Posting Storage Material-to-Material\nBASELINE
+
+!function _initial()
+{
+  = Initial Screen
+  ---
+  {
+      [ MENU ]|[ CLEAR ]|[ POST ]
+  }
+    [$conditional STATUS MESSAGE ]
+    ...
+    "$editable Source Material"
+    ^$disabled Source Plant^
+    ^$disabled Source Storage Location^
+    ...
+    "$editable Destination Material"
+    ^$disabled Destination Plant^
+    ^$disabled Destination Storage Location^
+    ...
+    "$disabled Quantity"
+    ===
+    <i>Notes
+}
+!endfunction
+
+!function _sourceMaterialValid()
+{
+    = Source Material Found in SAP
+    ---
+    {
+        [ MENU ]|[ CLEAR ]|[ POST ]
+    }
+    [$conditional STATUS MESSAGE ]
+    ...
+    "$editable Source Material"
+    Description
+    Base Unit of Measure
+    ^$editable Source Plant^
+    { 
+        or|^$disabled $sysentry Source Plant^
+        .|$sysnote Plant set by system and locked if Material found in single Plant
+    }
+    ^$disabled Source Storage Location^
+    {
+        or|^$editable Source Storage Location^
+        .|$sysnote SLoc enabled if Plant is set or selected
+        or|^$disabled $sysentry Source Storage Location^
+        .|Current Quantity in Source Storage Location
+        .|$sysnote SLoc & Qty set by system and locked if Material found in single SLoc
+    }
+    ...
+    "$editable Destination Material"
+    ^$conditional Destination Plant^
+    ^$conditional Destination Storage Location^
+    ...
+    "$disabled Quantity to Transfer"
+    {
+        or|"$editable Quantity to Transfer"
+        .|$sysnote Quantity enabled if Source SLoc is set or selected
+    }
+    ===
+    <i>Notes
+    Source Plant picklist includes all Plants where Source Material is defined
+}
+!endfunction
+
+!function _sourcePlantValid()
+{
+    = Source Plant Selected
+    ---
+    {
+        [ MENU ]|[ CLEAR ]|[ POST ]
+    }
+    [$conditional STATUS MESSAGE ]
+    ...
+    "$editable Source Material"
+    Description
+    Base Unit of Measure
+    ^$editable Source Plant^
+    ^$editable Source Storage Location^
+    {
+        or|^$disabled $sysentry Source Storage Location^
+        .|Current Quantity in Source Storage Location
+        .|$sysnote SLoc & Qty set by system and locked if Material found in single SLoc
+    }
+    ...
+    "$editable Destination Material"
+    ^$conditional Destination Plant^
+    ^$conditional Destination Storage Location^
+    ...
+    "$disabled Quantity to Transfer"
+    {
+        or|"$editable Quantity to Transfer"
+        .|$sysnote Quantity enabled if Source SLoc is set or selected
+    }
+    ===
+    <i>Notes
+    Source SLoc picklist includes all SLocs in selected Plant where Material is defined
+}
+!endfunction
+
+!function _sourceSlocValid()
+{
+    = Source Storage Location Selected
+    ---
+    {
+        [ MENU ]|[ CLEAR ]|[ POST ]
+    }
+    [$conditional STATUS MESSAGE ]
+    ...
+    "$editable Source Material"
+    Description
+    Base Unit of Measure
+    ^$conditional Plant^
+    ^$editable Source Storage Location^
+    Current Quantity in Source Storage Location
+    ...
+    "$editable Destination Material"
+    ^$conditional Destination Plant^
+    ^$conditional Destination Storage Location^
+    ...
+    "$editable Quantity to Transfer"
+    ===
+    <i>Notes
+}
+!endfunction
+
+!function _destinationMaterialValid()
+{
+    = Destination Material Found in SAP
+    ---
+    {
+        [ MENU ]|[ CLEAR ]|[ POST ]
+    }
+    [$conditional STATUS MESSAGE ]
+    ...
+    "$editable Source Material"
+    Description
+    Base Unit of Measure
+    ^$conditional Source Plant^
+    ^$conditional Source Storage Location^
+    $conditional Current Quantity in Source SLoc
+    ...
+    "$editable Destination Material"
+    Description
+    ^$editable Destination Plant^
+    { 
+        or|^$disabled $sysentry Destination Plant^
+        .|$sysnote Plant set by system and locked if Material found in single Plant
+    }
+    ^$disabled Destination Storage Location^
+    {
+        or|^$editable Destination Storage Location^
+        .|$sysnote SLoc enabled if Plant is set or selected
+        or|^$disabled $sysentry Destination Storage Location^
+        .|$sysnote SLoc set by system and locked if Material found in single SLoc
+    }
+    ...
+    "$conditional Quantity to Transfer"
+    ===
+    <i>Notes
+    Destination Plant picklist includes all Plants where Destination Material is defined
+}
+!endfunction
+
+
+!function _destinationPlantValid()
+{
+  = Destination Plant Selected
+  ---
+  {
+      [ MENU ]|[ CLEAR ]|[ POST ]
+  }
+    [$conditional STATUS MESSAGE ]
+  ...
+    "$editable Source Material"
+    Description
+    Base Unit of Measure
+    ^$conditional Source Plant^
+    ^$conditional Source Storage Location^
+    $conditional Current Quantity in Source SLoc
+    ...
+    "$editable Destination Material"
+    Description
+    ^$editable Destination Plant^
+    ^$editable Destination Storage Location^
+    {
+        or|^$disabled $sysentry Destination Storage Location^
+        .|$sysnote SLoc set by system and locked if Material found in single SLoc
+    }
+    ...
+    "$conditional Quantity to Transfer"
+    ===
+    <i>Notes
+    Destination SLoc picklist includes all SLocs in selected Plant where Material is defined
+}
+!endfunction
+
+!function _posted()
+{
+  = Post Sent to SAP
+  ===
+  <i>Notes
+}
+!endfunction
+
+(*) --> [$button Menu Selection] SALT(initial)
+initial --> [$userentry Source Material Entry\n(If source Material found in SAP)] "Gathering Data" as Gathering<<ScreenGroup>>
+initial --> [$userentry Destination Material Entry\n(If destination Material found in SAP)\nand\n(If destination UoM matches source UoM)] Gathering
+Gathering --> [$button POST\n(If All Required Entries Completed)] SALT(posted)
+posted -$sysevt-> [$sysentry Failed Post to SAP] Gathering
+posted -$sysevt-> [$sysentry Successful Post to SAP\nDocument Number in Status Messaage] initial
+
+partition "Gathering Data" {
+    partition "Source Data" {
+    Gathering -[dotted]-> SALT(sourceMaterialValid)
+    sourceMaterialValid --> [$userentry Source Plant Entry] SALT(sourcePlantValid)
+    sourceMaterialValid --> [$userentry Source Storage Location Entry] SALT(sourceSlocValid)
+    sourcePlantValid --> [$userentry Source Storage Location Entry] sourceSlocValid
+    }
+    partition "Destination Data" {
+    Gathering -[dotted]-> SALT(destinationMaterialValid)
+    destinationMaterialValid --> [$userentry Destination Plant Entry] SALT(destinationPlantValid)
+    }
+}
+
+@enduml

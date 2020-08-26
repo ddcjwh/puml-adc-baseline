@@ -1,0 +1,62 @@
+@startuml TEMPLATE_SALT_COLOR
+!include http://utilities.junotsystems.com:5120/plantuml/jwh-salt-chart-legend.iuml
+
+title Transaction Name\nPROJECT
+
+!function _initial()
+{
+    = Initial Screen
+    ---
+    {
+        [ MENU ]|[ POST ]
+    }
+    [$conditional STATUS MESSAGE]
+    ...
+    "$editable Text Field"
+    ^$disabled Picklist Field^
+    Label Field
+    [] Checkbox Field
+    [X] Checked Checkbox Field
+    {S
+        {#
+            table header|*
+            column 1|column 2
+        }
+    }
+    ...
+    $sysnote Add sections as necessary
+    "$editable Field"
+    {
+        or|"$disabled $sysentry Field"
+        .|$sysnote might have a default value
+    }
+    ===
+    <i>Notes
+}
+!endfunction
+
+!function _someFieldValid()
+{
+    = Etc.
+}
+!endfunction
+
+!function _posted()
+{
+    = Post Sent to SAP
+    ===
+    <i>Notes 
+}
+!endfunction
+
+(*) --> [$button Menu Selection] SALT(initial)
+initial --> [$userentry Some Field Entry] "Gathering Data" as Gathering<<ScreenGroup>>
+Gathering --> [$button POST\n(If All Required Entries Completed)] SALT(posted)
+posted -$sysevt-> [$sysentry Failed Post to SAP] Gathering
+posted -$sysevt-> [$sysentry Successful Post to SAP] initial
+
+partition "Gathering Data" {
+    Gathering -[dotted]-> SALT(someFieldValid)
+}
+
+@enduml

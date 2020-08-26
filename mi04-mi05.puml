@@ -1,0 +1,139 @@
+@startuml MI04_BASELINE
+!include http://utilities.junotsystems.com:5120/plantuml/jwh-salt-chart-legend.iuml
+
+title MI04/MI05 Inventory Count\nBASELINE
+
+!function _initial()
+{
+    = Initial Screen
+    ---
+    {
+        [ MENU ]|[ CLEAR ]|[ POST ]
+    }
+    ...
+    "$editable Material"
+    "$editable Count"
+    ^$editable Unit of Measure^
+    [ COUNT ]
+    Cumulative Count
+    Inventory Document
+    System Quantity
+    Posted Quantity
+    ===
+    <i>Notes
+}
+!endfunction
+
+!function _materialValid()
+{
+    = Material Found on Open Inventory Document in SAP
+    ---
+    {
+        [ MENU ]|[ CLEAR ]|[ POST ]
+    }
+    ...
+    "$editable Material"
+    "$editable Count"
+    ^$editable Unit of Measure^
+    [ COUNT ]
+    Cumulative Count
+    Inventory Document
+    Inventory Document Line Number
+    System Quantity
+    Posted Quantity
+    ===
+    <i>Notes
+    Unposted counts gathered so far stored in internal workset
+}
+!endfunction
+
+!function _materialPreviouslyCounted()
+{
+    = Unposted Count Exists
+    ---
+    {
+        [ MENU ]|[ CLEAR ]|[ POST ]
+    }
+    ...
+    [ PREV COUNT EXIST ]
+    "$editable Material"
+    "$editable Count"
+    ^$editable Unit of Measure^
+    [ COUNT ]
+    Cumulative Count
+    Inventory Document
+    Inventory Document Line Number
+    System Quantity
+    Posted Quantity
+    ===
+    <i>Notes 
+}
+!endfunction
+
+!function _displayCumulativeCount()
+{
+    = Accumulated Count Display
+    ---
+    {
+        [ MENU ]|[ CLEAR ]|[ POST ]
+    }
+    ...
+    [ RETURN ]
+    Cumulative Count
+    Inventory Document
+    Inventory Document Line Number
+    {S
+        {#
+            List of Unposted Counts for Current Material|*|*
+            Count Quantity|UoM|Converted Qty
+        }
+    }
+}
+!endfunction
+
+!function _posted()
+{
+    = Post Sent to SAP
+    ===
+    <i>Notes
+    Send lines with Count Qty > 0 only
+    Call COUNT or CHANGECOUNT as appropriate
+}
+!endfunction
+
+!function _postingResultDisplay()
+{
+    = Post Result Display
+    ---
+    {
+        [ MENU ]|[ CLEAR ]|[ POST ]
+    }
+    ...
+    [ RETURN ]
+    {S
+        {#
+            List of Post Results for each Line Item|*|*
+            Document Number|Line Number|Status Message
+        }
+    }
+    ===
+    <i>Notes 
+}
+!endfunction
+
+(*) --> [$button Menu Selection] SALT(initial)
+initial --> [$userentry Material Entry] "Gathering Data" as Gathering<<ScreenGroup>>
+Gathering --> [$button POST] SALT(posted)
+Gathering --> [$button CLEAR\nAll unposted entries discarded] initial
+posted -$sysevt-> SALT(postingResultDisplay)
+postingResultDisplay --> [$button RETURN] initial
+
+partition "Gathering Data" {
+    Gathering -[dotted]-> SALT(materialValid)
+    materialValid -$sysevt-> [$sysentry If material has already been counted] SALT(materialPreviouslyCounted)
+    materialPreviouslyCounted --> [$button PREV COUNT EXIST\n(If Selected Material has Unposted Count)\nDisplay Details of Previous Count] SALT(displayCumulativeCount)
+    displayCumulativeCount --> [$button RETURN] materialPreviouslyCounted
+    materialValid --> [$button COUNT\n(If Current Required Entries are Complete)\nSave Current Count] materialValid
+}
+
+@enduml
