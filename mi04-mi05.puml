@@ -1,9 +1,9 @@
-@startuml MI04_BASELINE
+@startuml MI0405_BASELINE_V39
 !include http://utilities.junotsystems.com:5120/plantuml/jwh-salt-chart-legend.iuml
 
-title MI04/MI05 Inventory Count\nBASELINE
+title MI04/MI05 Inventory Count\nBASELINE v39
 
-!function _initial()
+!procedure _initial()
 {
     = Initial Screen
     ---
@@ -11,6 +11,8 @@ title MI04/MI05 Inventory Count\nBASELINE
         [ MENU ]|[ CLEAR ]|[ POST ]
     }
     ...
+    "$editable Plant"
+    "$editable Storage Location"
     "$editable Material"
     "$editable Count"
     ^$editable Unit of Measure^
@@ -22,9 +24,9 @@ title MI04/MI05 Inventory Count\nBASELINE
     ===
     <i>Notes
 }
-!endfunction
+!endprocedure
 
-!function _materialValid()
+!procedure _materialValid()
 {
     = Material Found on Open Inventory Document in SAP
     ---
@@ -32,6 +34,9 @@ title MI04/MI05 Inventory Count\nBASELINE
         [ MENU ]|[ CLEAR ]|[ POST ]
     }
     ...
+    [ $conditional PREV COUNT EXIST ]
+    "$editable Plant"
+    "$editable Storage Location"
     "$editable Material"
     "$editable Count"
     ^$editable Unit of Measure^
@@ -43,11 +48,15 @@ title MI04/MI05 Inventory Count\nBASELINE
     Posted Quantity
     ===
     <i>Notes
-    Unposted counts gathered so far stored in internal workset
+    Only show PREV COUNT button if unposted counts exist
+    ... for the current inventory document line
+    Cumulative Count = Unposted counts gathered so far
+    System Quantity = Current stock quantity in SAP
+    Posted Quantity = Previously posted count (if applicable)
 }
-!endfunction
+!endprocedure
 
-!function _materialPreviouslyCounted()
+!procedure _materialPreviouslyCounted()
 {
     = Unposted Count Exists
     ---
@@ -68,9 +77,9 @@ title MI04/MI05 Inventory Count\nBASELINE
     ===
     <i>Notes 
 }
-!endfunction
+!endprocedure
 
-!function _displayCumulativeCount()
+!procedure _displayCumulativeCount()
 {
     = Accumulated Count Display
     ---
@@ -89,19 +98,19 @@ title MI04/MI05 Inventory Count\nBASELINE
         }
     }
 }
-!endfunction
+!endprocedure
 
-!function _posted()
+!procedure _posted()
 {
     = Post Sent to SAP
     ===
     <i>Notes
-    Send lines with Count Qty > 0 only
+    Send lines with Cumulative Count Qty > 0
     Call COUNT or CHANGECOUNT as appropriate
 }
-!endfunction
+!endprocedure
 
-!function _postingResultDisplay()
+!procedure _postingResultDisplay()
 {
     = Post Result Display
     ---
@@ -119,7 +128,7 @@ title MI04/MI05 Inventory Count\nBASELINE
     ===
     <i>Notes 
 }
-!endfunction
+!endprocedure
 
 (*) --> [$button Menu Selection] SALT(initial)
 initial --> [$userentry Material Entry] "Gathering Data" as Gathering<<ScreenGroup>>
@@ -130,9 +139,8 @@ postingResultDisplay --> [$button RETURN] initial
 
 partition "Gathering Data" {
     Gathering -[dotted]-> SALT(materialValid)
-    materialValid -$sysevt-> [$sysentry If material has already been counted] SALT(materialPreviouslyCounted)
-    materialPreviouslyCounted --> [$button PREV COUNT EXIST\n(If Selected Material has Unposted Count)\nDisplay Details of Previous Count] SALT(displayCumulativeCount)
-    displayCumulativeCount --> [$button RETURN] materialPreviouslyCounted
+    materialValid --> [$button PREV COUNT EXIST\n(If Selected Material has Unposted Count)\nDisplay Details of Previous Count(s)] SALT(displayCumulativeCount)
+    displayCumulativeCount --> [$button RETURN] materialValid
     materialValid --> [$button COUNT\n(If Current Required Entries are Complete)\nSave Current Count] materialValid
 }
 
