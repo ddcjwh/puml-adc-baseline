@@ -1,7 +1,7 @@
-@startuml MB1ARESPRO_BASELINE_V38_20
+@startuml MB1ARESPRO_BASELINE_V40
 !include http://utilities.junotsystems.com:5120/plantuml/jwh-salt-chart-legend.iuml
 
-title MB1A-RES Goods Issue for Production Order Reservation\nBASELINE v38
+title MB1A-RES Goods Issue for Production Order Reservation\nBASELINE v40
 
 !procedure _initial()
 {
@@ -12,6 +12,7 @@ title MB1A-RES Goods Issue for Production Order Reservation\nBASELINE v38
     }
     [$conditional STATUS MESSAGE]
     ...
+    "$disabled Plant Code"
     "$editable Production Order Number"
     ===
     <i>Notes
@@ -36,8 +37,8 @@ title MB1A-RES Goods Issue for Production Order Reservation\nBASELINE v38
     ^$editable Reservation Line^
     {S
         {#
-            List of Open Reservation Lines and Added Entries|*|*|*|*|*|*|*|*
-            Line Num|Material|Qty to Issue|UoM|Stor Loc|Batch|Vendor|Reserved Qty|Open Qty
+            List of Open Reservation Lines and Added Entries|*|*|*|*|*|*|*|*|*
+            Line Num|Material|Qty to Issue|UoM|Stor Loc|Batch|Vendor|Reserved Qty|Open Qty|Operation
         }
     }
     ===
@@ -68,6 +69,8 @@ title MB1A-RES Goods Issue for Production Order Reservation\nBASELINE v38
     "$editable Quantity to Issue"
     ...
     $sysnote Material Source Fields
+    "$disabled Plant Code"
+    ^$editable Operation^
     ^$editable Storage Location^
     ^$editable $conditional Vendor^
     ^$editable $conditional Batch^
@@ -115,6 +118,8 @@ title MB1A-RES Goods Issue for Production Order Reservation\nBASELINE v38
     ===
     <i>Notes
     Only send entries with unposted issue quantites > 0
+    Any new entries (new materials or split lines) will be added to production order first,
+    . then posted to corresponding new lines on underlying reservation
 }
 !endprocedure
 
@@ -130,151 +135,6 @@ partition "Gathering Data" {
     docNumValid --> [$userentry Material Entry\n(If material is found) or\n$userentry Item Selection] SALT(docLineDetail)
     docLineDetail --> [$button LIST] docNumValid
     docLineDetail --> [$button BACK or NEXT\nMove to previous or next entry] docLineDetail
-    docNumValid --> [$button RESET\n(If any entries have qty > 0)\nDiscard any split entries\nReread lines from Reservation] docNumValid
-    docLineDetail --> [$userentry Serial Number Entry\nAdd new entry to list of serial numbers\nor remove duplicate entry from list] docLineDetail
-    docLineDetail --> [$button ADD\n(If current entry is complete\nand source values differ from existing entries)] SALT(saving)
-    docLineDetail --> [$button SAVE\n(If current entry is complete\nand source values do not conflict with document\nor existing entries)] saving
-    docLineDetail --> [$button CLEAR\nFor current entry only\nIf quantity > 0, reset all values\nIf quantity = 0, remove entry from screen] saving
-    saving -$sysevt-> [$sysentry Stay on same item\n(If entries exist)] docLineDetail
-    saving -$sysevt-> [$sysentry Return to listing\n(If no entries remain for current item)] docNumValid
-}
-
-@enduml
-
-@startuml MB1ARESPRO_BASELINE_V38
-!include http://utilities.junotsystems.com:5120/plantuml/jwh-salt-chart-legend.iuml
-
-title MB1A-RES Goods Issue for Production Order Reservation\nBASELINE v38
-
-!function _initial()
-{
-    = Initial Screen
-    ---
-    {
-        [ MENU ]|[ RESET ]|[ POST ]
-    }
-    [$conditional STATUS MESSAGE]
-    ...
-    "$editable Production Order Number"
-    ===
-    <i>Notes
-}
-!endfunction
-
-!function _docNumValid()
-{
-    = Production Order Found in SAP
-    ---
-    {
-        [ MENU ]|[ RESET ]|[ POST ]
-    }
-    [$conditional STATUS MESSAGE]
-    ...
-    $sysnote Header Fields
-    "$editable Header Text"
-    "$editable Goods Recipient"
-    ...
-    $sysnote Selection Fields
-    "$editable Material"
-    ^$editable Reservation Line^
-    {S
-        {#
-            List of Open Reservation Lines and Added Entries|*|*|*|*|*|*|*|*
-            Line Num|Material|Qty to Issue|UoM|Stor Loc|Batch|Vendor|Reserved Qty|Open Qty
-        }
-    }
-    ===
-    <i>Notes
-    Entry list may be empty (if no open lines found on Reservation,
-    . or if all entries have been cleared)
-}
-!endfunction
-
-!function _docLineDetail()
-{
-    = Material Selected for Issue
-    ---
-    {
-        [ MENU ]|[ RESET ]|[ POST ]
-    }
-    [$conditional STATUS MESSAGE]
-    ...
-    {S-
-        {#
-            List of Entries for Selected Material|*|*
-            with|same|details
-        }
-    }
-    $sysnote Current entry will be highlighted
-    Material Description
-    ...
-    "$editable Quantity to Issue"
-    ...
-    $sysnote Material Source Fields
-    ^$editable Storage Location^
-    ^$editable $conditional Vendor^
-    ^$editable $conditional Batch^
-    Available Quantity
-    ...
-    $sysnote Serial Number Fields
-    {S
-        {#
-            $conditional List of Entered Serial Numbers
-            Serial Number
-        }
-    }
-    ^$editable $conditional Serial Number^
-    ...
-    {
-        [ ADD ]|[ LIST ]|[ BACK ]|[ CLEAR ]|[ NEXT ]|[ SAVE ]
-    }
-    ===
-    <i>Notes
-    Default Issue Quantity = 0
-    Only show Vendor field if Reservation Line is marked as Consignment Stock
-    Only show Batch field if Material is batch-managed
-    Available Quantity shown at lowest level (e.g., at SLoc, Vendor or Batch)
-    Only show Serial Number fields if Material has serial number profile
-    . and saved issued quantity > 0
-    If Storage Location, Vendor and/or Batch value is specified in document,
-    . those value(s) default and cannot be changed, but a new entry for the same
-    . material with different value(s) can be added (e.g., batch split)
-}
-!endfunction
-
-!function _saving()
-{
-    = Updating Issues
-    ===
-    <i>Notes
-    Unposted issue details gathered so far stored in internal workset
-    Multiple lines may be gathered for posting to a single GI Document
-}
-!endfunction
-
-!function _posted()
-{
-    = Post Sent to SAP
-    ===
-    <i>Notes
-    Only send entries with unposted issue quantites > 0
-    Any new entries (new materials or split lines) will be added to production order first,
-    . then posted to corresponding new lines on underlying reservation
-}
-!endfunction
-
-(*) --> [$button Menu Selection] SALT(initial)
-initial --> [$userentry Production Order Number Entry\n(If Production Order found in SAP)] "Gathering Data" as Gathering<<ScreenGroup>>
-Gathering --> [$button POST] SALT(posted)
-posted -$sysevt-> [$sysentry Failed Post to SAP] Gathering
-Gathering --> [$button RESET\n(If all entries have qty = 0)\nDiscard all entries\nClear header fields] initial
-posted -$sysevt-> [$sysentry Successful Post to SAP\nShow Document Number in status message] initial
-
-partition "Gathering Data" {
-    Gathering -[dotted]-> SALT(docNumValid)
-    docNumValid --> [$userentry Material Entry\n(If material is valid) or\n$userentry Item Selection] SALT(docLineDetail)
-    docLineDetail --> [$button LIST] docNumValid
-    docLineDetail --> [$button BACK or NEXT\nMove to previous or next entry] docLineDetail
     docNumValid --> [$button RESET\n(If any entries have qty > 0)\nDiscard any added or split entries\nReread lines from Reservation] docNumValid
     docLineDetail --> [$userentry Serial Number Entry\nAdd new entry to list of serial numbers\nor remove duplicate entry from list] docLineDetail
     docLineDetail --> [$button ADD\n(If current entry is complete\nand source values differ from existing entries)] SALT(saving)
@@ -285,4 +145,5 @@ partition "Gathering Data" {
 }
 
 @enduml
+
 

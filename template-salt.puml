@@ -3,7 +3,7 @@
 
 title Transaction Name\nPROJECT
 
-!function _initial()
+!procedure _initial()
 {
     = Initial Screen
     ---
@@ -33,21 +33,21 @@ title Transaction Name\nPROJECT
     ===
     <i>Notes
 }
-!endfunction
+!endprocedure
 
-!function _someFieldValid()
+!procedure _someFieldValid()
 {
     = Etc.
 }
-!endfunction
+!endprocedure
 
-!function _posted()
+!procedure _posted()
 {
     = Post Sent to SAP
     ===
     <i>Notes 
 }
-!endfunction
+!endprocedure
 
 (*) --> [$button Menu Selection] SALT(initial)
 initial --> [$userentry Some Field Entry] "Gathering Data" as Gathering<<ScreenGroup>>

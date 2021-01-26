@@ -1,7 +1,7 @@
-@startuml MB1ARESWO_BASELINE_V40-MRO-7
+@startuml MB1A262_BASELINE_V40
 !include http://utilities.junotsystems.com:5120/plantuml/jwh-salt-chart-legend.iuml
 
-title MB1A-RES-WO Goods Issue for Work Order Reservation\nMRO v40-7
+title MB1A-262 Goods Issue Reversal\nBASELINE v40
 
 !procedure _initial()
 {
@@ -12,8 +12,7 @@ title MB1A-RES-WO Goods Issue for Work Order Reservation\nMRO v40-7
     }
     [$conditional STATUS MESSAGE]
     ...
-    "$disabled Plant Code"
-    "$editable Work Order Number"
+    "$editable Production Order Number"
     ===
     <i>Notes
 }
@@ -21,7 +20,7 @@ title MB1A-RES-WO Goods Issue for Work Order Reservation\nMRO v40-7
 
 !procedure _docNumValid()
 {
-    = Work Order Found in SAP
+    = Production Order Found in SAP
     ---
     {
         [ MENU ]|[ RESET ]|[ POST ]
@@ -31,26 +30,28 @@ title MB1A-RES-WO Goods Issue for Work Order Reservation\nMRO v40-7
     $sysnote Header Fields
     "$editable Header Text"
     "$editable Goods Recipient"
+    [] $editable By Reservation
     ...
     $sysnote Selection Fields
     "$editable Material"
     ^$editable Reservation Line^
     {S
         {#
-            List of Open Reservation Lines and Added Entries|*|*|*|*|*|*|*|*|*
-            Line Num|Material|Qty to Issue|UoM|Stor Loc|Batch|Vendor|Reserved Qty|Open Qty|Operation
+            List of Reservation Lines and Added Entries|*|*|*|*
+            Material|Qty to Reverse|UoM|Stor Loc|Batch
         }
     }
     ===
     <i>Notes
-    Entry list may be empty (if no open lines found on Reservation,
-    . or if all entries have been cleared)
+    Select By Reservation checkbox to load list with existing lines
+    Can post multiple lines, but cannot mix with / without reference
+    ...to existing lines
 }
 !endprocedure
 
 !procedure _docLineDetail()
 {
-    = Material Selected for Issue
+    = Material Selected for Reversal
     ---
     {
         [ MENU ]|[ RESET ]|[ POST ]
@@ -66,15 +67,15 @@ title MB1A-RES-WO Goods Issue for Work Order Reservation\nMRO v40-7
     $sysnote Current entry will be highlighted
     Material Description
     ...
-    "$editable Quantity to Issue"
+    "$editable Quantity to Reverse"
     ...
-    $sysnote Material Source Fields
-    "$disabled Plant Code"
+    $sysnote Material Destination Fields
+    Plant Code
     ^$editable Operation^
     ^$editable Storage Location^
-    ^$editable $conditional Vendor^
     ^$editable $conditional Batch^
     Available Quantity
+    . or Issued Quantity (if By Reservation)
     ...
     $sysnote Serial Number Fields
     {S
@@ -90,13 +91,13 @@ title MB1A-RES-WO Goods Issue for Work Order Reservation\nMRO v40-7
     }
     ===
     <i>Notes
-    Default Issue Quantity = 0
-    Only show Vendor field if Reservation Line is marked as Consignment Stock
+    Default Reversal Quantity = 0
     Only show Batch field if Material is batch-managed
-    Available Quantity shown at lowest level (e.g., at SLoc, Vendor or Batch)
+    Available Quantity shown at lowest level (e.g., at SLoc or Batch)
+    If reversing with reference to reservation, shows Issued Quantity instead
     Only show Serial Number fields if Material has serial number profile
     . and saved issued quantity > 0
-    If Storage Location, Vendor and/or Batch value is specified in document,
+    If Storage Location and/or Batch value is specified in document,
     . those value(s) default and cannot be changed, but a new entry for the same
     . material with different value(s) can be added (e.g., batch split)
 }
@@ -104,10 +105,10 @@ title MB1A-RES-WO Goods Issue for Work Order Reservation\nMRO v40-7
 
 !procedure _saving()
 {
-    = Updating Issues
+    = Updating Reversals
     ===
     <i>Notes
-    Unposted issue details gathered so far stored in internal workset
+    Unposted reversal details gathered so far stored in internal workset
     Multiple lines may be gathered for posting to a single GI Document
 }
 !endprocedure
@@ -117,14 +118,12 @@ title MB1A-RES-WO Goods Issue for Work Order Reservation\nMRO v40-7
     = Post Sent to SAP
     ===
     <i>Notes
-    Only send entries with unposted issue quantites > 0
-    Any new entries (new materials or split lines) will be added to work order first,
-    . then posted to corresponding new lines on underlying reservation
+    Only send entries with unposted reversal quantites > 0
 }
 !endprocedure
 
 (*) --> [$button Menu Selection] SALT(initial)
-initial --> [$userentry Work Order Number Entry\n(If Work Order found in SAP)] "Gathering Data" as Gathering<<ScreenGroup>>
+initial --> [$userentry Production Order Number Entry\n(If Production Order found in SAP)] "Gathering Data" as Gathering<<ScreenGroup>>
 Gathering --> [$button POST] SALT(posted)
 posted -$sysevt-> [$sysentry Failed Post to SAP] Gathering
 Gathering --> [$button RESET\n(If all entries have qty = 0)\nDiscard all entries\nClear header fields] initial
@@ -135,14 +134,13 @@ partition "Gathering Data" {
     docNumValid --> [$userentry Material Entry\n(If material is found) or\n$userentry Item Selection] SALT(docLineDetail)
     docLineDetail --> [$button LIST] docNumValid
     docLineDetail --> [$button BACK or NEXT\nMove to previous or next entry] docLineDetail
-    docNumValid --> [$button RESET\n(If any entries have qty > 0)\nDiscard any added or split entries\nReread lines from Reservation] docNumValid
+    docNumValid --> [$button RESET\n(If any entries have qty > 0)\nReset quantities to 0\n(If By Reservation is checked)\nReread lines from Reservation] docNumValid
     docLineDetail --> [$userentry Serial Number Entry\nAdd new entry to list of serial numbers\nor remove duplicate entry from list] docLineDetail
-    docLineDetail --> [$button ADD\n(If current entry is complete\nand source values differ from existing entries)] SALT(saving)
-    docLineDetail --> [$button SAVE\n(If current entry is complete\nand source values do not conflict with document\nor existing entries)] saving
+    docLineDetail --> [$button ADD\n(If current entry is complete\nand destination values differ from existing entries)] SALT(saving)
+    docLineDetail --> [$button SAVE\n(If current entry is complete\nand destination values do not conflict with document\nor existing entries)] saving
     docLineDetail --> [$button CLEAR\nFor current entry only\nIf quantity > 0, reset all values\nIf quantity = 0, remove entry from screen] saving
     saving -$sysevt-> [$sysentry Stay on same item\n(If entries exist)] docLineDetail
     saving -$sysevt-> [$sysentry Return to listing\n(If no entries remain for current item)] docNumValid
 }
 
 @enduml
-
